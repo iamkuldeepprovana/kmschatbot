@@ -16,6 +16,7 @@ steps:
       - '-c'
       - |
         docker pull $_IMAGE_NAME:latest || true
+
   # Step 3: Build the Docker image with cache
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -39,7 +40,8 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - |        gcloud run deploy kmschatbot \
+      - |
+        gcloud run deploy kmschatbot \
           --image '${_IMAGE_NAME}:${COMMIT_SHA}' \
           --platform managed \
           --region us-central1 \
