@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, Moon, Sun, Plus } from 'lucide-react';
+import { Send, Bot, Moon, Sun, Plus, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/lib/useTheme';
@@ -27,6 +27,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [sessionId, setSessionId] = useState<string>('');
+  const [username, setUsername] = useState<string>("");
   const { isDarkMode, toggleDarkMode, mounted } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -41,11 +42,12 @@ export default function ChatPage() {
     if (initialized.current) return;
     initialized.current = true;
 
-    const username = localStorage.getItem('chatbot-username');
-    if (!username) {
+    const storedUsername = localStorage.getItem('chatbot-username');
+    if (!storedUsername) {
       window.location.href = '/login';
       return;
     }
+    setUsername(storedUsername);
 
     // Initialize session ID with current timestamp
     const newSessionId = `session-${Date.now()}`;
@@ -213,24 +215,49 @@ export default function ChatPage() {
               >
                 {mounted && (isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
               </Button>
-              <Button
-                onClick={() => {
-                  localStorage.removeItem('chatbot-username');
-                  window.location.href = '/login';
-                }}
-                variant="outline"
-                className="transition-colors duration-300 border font-semibold px-4 py-2 text-sm bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 dark:hover:text-white"
-              >
-                Logout
-              </Button>
+              {/* User Info Dropdown Modernized */}
+              <div className="relative group">
+                <button className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800">
+                      <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
+                    </span>
+                  </span>
+                  <span className="hidden sm:block max-w-[120px] truncate font-medium text-gray-900 dark:text-gray-100 text-base">{username}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto transition-all z-50 border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
+                      <span className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-gray-800">
+                        <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
+                      </span>
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">{username}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">Provana User</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('chatbot-username');
+                      window.location.href = '/login';
+                    }}
+                    className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-xl transition-colors font-semibold flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+                    Logout
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Messages Display */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="w-full max-w-4xl mx-auto space-y-4 overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70">
+        <div className="w-full max-w-3-5xl mx-auto space-y-4 overflow-hidden">
           {messages.map((message) => (
             <ChatMessage
               key={message.id}
@@ -269,13 +296,20 @@ export default function ChatPage() {
               <Plus className="w-5 h-5" />
             </Button>
             <div className="flex-1 relative">
-              <Input
+              <textarea
                 value={inputValue}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Type your message..."
-                className="pr-12 min-h-[48px] resize-none rounded-xl transition-colors duration-300 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+                rows={1}
+                className="pr-12 min-h-[48px] max-h-40 resize-y rounded-xl transition-colors duration-300 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500 w-full py-3 px-4"
                 disabled={isTyping}
+                style={{ lineHeight: '1.5', overflow: 'auto' }}
               />
             </div>
             <Button
