@@ -3,6 +3,7 @@
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MarkdownView } from './MarkdownView';
+import { TypewriterText } from './TypewriterText';
 
 type MessageProps = {
   content: string;
@@ -30,14 +31,22 @@ export function ChatMessage({ content, isUser = false, timestamp = new Date() }:
             ? "bg-blue-500 text-white"
             : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         )}
-      >
-        <MarkdownView 
-          content={content}
-          className={cn(
-            "prose prose-sm max-w-none break-words overflow-hidden",
-            isUser ? "prose-invert" : ""
-          )}
-        />
+      >        {isUser ? (
+          <MarkdownView 
+            content={content}
+            className={cn(
+              "prose prose-sm max-w-none break-words overflow-hidden",
+              "prose-invert"
+            )}
+          />
+        ) : (
+          <TypewriterText
+            content={content}
+            className={cn(
+              "prose prose-sm max-w-none break-words overflow-hidden"
+            )}
+          />
+        )}
         <div className={cn(
           "text-xs mt-1 opacity-70",
           isUser ? "text-right" : "text-left"

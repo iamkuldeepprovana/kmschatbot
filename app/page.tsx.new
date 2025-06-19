@@ -17,8 +17,7 @@ interface Message {
 }
 
 interface ApiResponse {
-  query: string;
-  generated_response: string;
+  response?: string;
   error?: string;
 }
 
@@ -72,18 +71,11 @@ export default function ChatPage() {
     };
     
     setMessages(prev => [...prev, userMessage]);
-      try {
+    
+    try {
       const username = localStorage.getItem('chatbot-username') || 'guest';
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
-
-
-      console.log('Sending request to API:', {
-        query: question,
-        client_name: username
-      });
-
-      console.log('Connecting to:', 'https://kmaaivertexai-658439223400.us-central1.run.app/retrieve');
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const res = await fetch('https://kmaaivertexai-658439223400.us-central1.run.app/retrieve', {
         method: 'POST',
@@ -93,9 +85,10 @@ export default function ChatPage() {
         },
         mode: 'cors',
         credentials: 'omit',
-        signal: controller.signal,        body: JSON.stringify({
+        signal: controller.signal,
+        body: JSON.stringify({
           query: question,
-          client_name: username
+          Client_name: username
         })
       });
 
@@ -103,22 +96,18 @@ export default function ChatPage() {
       
       if (!res.ok) {
         throw new Error(`API returned status: ${res.status}`);
-      }      console.log('Response status:', res.status);
+      }
+
       const data: ApiResponse = await res.json();
-      console.log('API Response:', data);
 
       if (data.error) {
         throw new Error(data.error);
-      }
-
-      if (!data.generated_response) {
-        throw new Error('No response received from the API');
       }
       
       // Add bot response to state
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
-        content: data.generated_response,
+        content: data.response || 'No response received.',
         isUser: false,
         timestamp: new Date()
       };
