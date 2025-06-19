@@ -1,0 +1,270 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { Send, Bot, Moon, Sun, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useTheme } from '@/lib/useTheme';
+import { ChatMessage } from '@/components/ChatMessage';
+import { MarkdownView } from '@/components/MarkdownView';
+import { useToast } from '@/hooks/use-toast';
+
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
+export default function ChatPage() {
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+  const { isDarkMode, toggleDarkMode, mounted } = useTheme();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const initialized = useRef(false);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const username = localStorage.getItem('chatbot-username');
+    if (!username) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Initialize session ID with current timestamp
+    const newSessionId = `session-${Date.now()}`;
+    setSessionId(newSessionId);
+
+    // Add welcome message
+    setMessages([{
+      id: `welcome-${newSessionId}`,
+      content: `Welcome to Provana KMS! How can I help you today?`,
+      isUser: false,
+      timestamp: new Date()
+    }]);
+  }, []);
+
+  const sendMessageToBackend = async (question: string) => {
+    setIsTyping(true);
+    
+    // Add user message to state
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: question,
+      isUser: true,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    
+    try {
+      const res = await fetch('https://deploytesting.pro/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          client: { 
+            username: localStorage.getItem('chatbot-username') || 'guest',
+            sessionId: sessionId
+          },
+        }),
+      });
+      
+      if (!res.ok) throw new Error('API error');
+      
+      const data = await res.json();
+      
+      // Add bot response to state
+      const botMessage: Message = {
+        id: `bot-${Date.now()}`,
+        content: data.generated_response || 'No response.',
+        isUser: false,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (e) {
+      // Add error message
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        content: 'Sorry, there was an error connecting to the service.',
+        isUser: false,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isTyping) return;
+    await sendMessageToBackend(inputValue);
+    setInputValue('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Start a new chat session
+  const startNewChat = () => {
+    // Generate a new session ID with current timestamp
+    const newSessionId = `session-${Date.now()}`;
+    setSessionId(newSessionId);
+    
+    // Clear all messages except the welcome message
+    setMessages([{
+      id: `welcome-${newSessionId}`,
+      content: `Welcome to Provana KMS! How can I help you today?`,
+      isUser: false,
+      timestamp: new Date()
+    }]);
+    
+    // Reset input field
+    setInputValue('');
+    
+    // Show toast notification
+    toast({
+      title: "New Chat Started",
+      description: "Your previous conversation has been cleared.",
+      duration: 3000,
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden transition-colors duration-300 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold transition-colors duration-300 text-gray-900 dark:text-gray-100">Provana KMS</h1>
+                <div className="flex items-center">
+                  <p className="text-sm transition-colors duration-300 text-gray-500 dark:text-gray-400">Your Knowledge Management Solution</p>
+                  {sessionId && (
+                    <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                      Session: {sessionId.substring(sessionId.length - 6)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Theme Toggle & Logout */}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={toggleDarkMode}
+                variant="ghost"
+                size="icon"
+                className="rounded-full transition-colors duration-300 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+                title={isDarkMode ? "Light Mode" : "Dark Mode"}
+              >
+                {mounted && (isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('chatbot-username');
+                    window.location.href = '/login';
+                  }
+                }}
+                variant="outline"
+                className="transition-colors duration-300 border font-semibold px-4 py-2 text-sm bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 dark:hover:text-white"
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Display */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="w-full max-w-4xl mx-auto space-y-4 overflow-hidden">
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              content={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
+          ))}
+          
+          {isTyping && (
+            <div className="flex items-center space-x-2 animate-pulse">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-white" />
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 text-gray-500 dark:text-gray-400">
+                Thinking...
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="flex-shrink-0 border-t backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-end space-x-3">
+            <Button
+              onClick={startNewChat}
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 rounded-xl transition-colors duration-300 border-blue-200 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:bg-gray-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-300"
+              title="New Chat"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+            <div className="flex-1 relative">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                className="pr-12 min-h-[48px] resize-none rounded-xl transition-colors duration-300 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+                disabled={isTyping}
+              />
+            </div>
+            <Button
+              onClick={handleSend}
+              disabled={!inputValue.trim() || isTyping}
+              className="h-12 w-12 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              size="icon"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex justify-between mt-2">
+            <p className="text-xs text-left transition-colors duration-300 text-gray-500 dark:text-gray-400">
+              <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Click the plus icon to start a new chat
+            </p>
+            <p className="text-xs text-right transition-colors duration-300 text-gray-500 dark:text-gray-400">
+              Press Enter to send, Shift + Enter for new line
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,102 @@
+@import "./markdown.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
+    --radius: 0.5rem;
+    
+    /* Chart colors */
+    --chart-1: 222 47% 31%;
+    --chart-2: 217 65% 45%;
+    --chart-3: 213 68% 59%;
+    --chart-4: 209 78% 76%;
+    --chart-5: 204 71% 88%;
+    
+    /* Neon effect color */
+    --neon: 160 70% 53%;
+  }
+ 
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 12.2% 83.9%;
+    
+    /* Chart colors - darker variants */
+    --chart-1: 222 47% 25%;
+    --chart-2: 217 65% 35%;
+    --chart-3: 213 68% 45%;
+    --chart-4: 209 78% 56%;
+    --chart-5: 204 71% 68%;
+    
+    /* Neon effect color - brighter in dark mode */
+    --neon: 160 80% 53%;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Neon effect utilities */
+  .text-neon {
+    color: hsl(var(--neon));
+    text-shadow: 0 0 8px hsla(var(--neon), 0.6), 0 0 2px hsla(var(--neon), 0.8);
+  }
+  
+  .bg-neon {
+    background-color: hsl(var(--neon));
+  }
+  
+  .border-neon {
+    border-color: hsl(var(--neon));
+  }
+  
+  /* Glass effect utility */
+  .shadow-glass {
+    box-shadow: 0 4px 32px 0 hsla(var(--neon), 0.13), 0 1.5px 8px 0 rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+}
