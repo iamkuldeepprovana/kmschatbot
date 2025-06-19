@@ -12,6 +12,7 @@ type MessageProps = {
 };
 
 export function ChatMessage({ content, isUser = false, timestamp = new Date() }: MessageProps) {
+  console.log('Rendering ChatMessage:', { content, isUser, timestamp });
   return (
     <div
       className={cn(

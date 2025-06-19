@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { marked } from 'marked';
 import { cn } from '@/lib/utils';
+import { useTypewriter } from '@/hooks/useTypewriter';
 
 interface TypewriterTextProps {
   content: string;
@@ -19,12 +20,13 @@ marked.setOptions({
 
 // Clean markdown links by encoding spaces as %20 in URLs
 function cleanMarkdownLinks(markdown: string): string {
+  if (!markdown) return '';
   return markdown.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     (match, text, url) => {
-      // If the URL contains spaces and is not already encoded
-      if (url.includes(' ') && !(url.startsWith('<') && url.endsWith('>'))) {
-        return `[${text}](${url.replace(/ /g, '%20')})`;
+      const cleanUrl = url.trim();
+      if (cleanUrl.includes(' ') && !(cleanUrl.startsWith('<') && cleanUrl.endsWith('>'))) {
+        return `[${text}](${cleanUrl.replace(/ /g, '%20')})`;
       }
       return match;
     }
@@ -32,46 +34,43 @@ function cleanMarkdownLinks(markdown: string): string {
 }
 
 export function TypewriterText({ content, onComplete, className, speed = 10 }: TypewriterTextProps) {
-  const [displayedContent, setDisplayedContent] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Validate and clean input content
+  const validContent = typeof content === 'string' ? content : '';
+  const contentRef = useRef(validContent);
+  
+  // Use our custom hook for typewriter effect
+  const { displayedContent, isComplete } = useTypewriter(validContent, speed, onComplete);
 
-  useEffect(() => {
-    let currentIndex = 0;
-    setIsComplete(false);
-    setDisplayedContent('');
+  // Process the markdown with proper cleanup and caching
+  const processedHtml = useMemo(() => {
+    if (!displayedContent) return '';
     
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    const cleanedContent = cleanMarkdownLinks(displayedContent);
+    return Promise.resolve(marked(cleanedContent)).then(html => 
+      // Ensure tables are wrapped in a scrollable container
+      (typeof html === 'string' ? html : String(html))
+        .replace(/<table/g, '<div class="overflow-x-auto w-full"><table')
+        .replace(/<\/table>/g, '</table></div>')
+    );
+  }, [displayedContent]);
 
-    intervalRef.current = setInterval(() => {
-      if (currentIndex < content.length) {
-        setDisplayedContent(prev => prev + content[currentIndex]);
-        currentIndex++;
-      } else {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        setIsComplete(true);
-        onComplete?.();
-      }
-    }, speed); // Adjust speed here (lower number = faster)
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [content, onComplete, speed]);
-
-  // Process the markdown to ensure bullet points are rendered properly
-  const processedHtml = marked.parse(cleanMarkdownLinks(displayedContent));
+  // Handle async markdown rendering
+  const [html, setHtml] = useState<string>('');
+  
+  useEffect(() => {
+    Promise.resolve(processedHtml).then(result => setHtml(result));
+  }, [processedHtml]);
 
   return (
-    <div className={cn(className, 'markdown-content overflow-hidden max-w-full')}>
-      <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+    <div 
+      className={cn(
+        className,
+        'markdown-content overflow-hidden max-w-full',
+        'prose-pre:overflow-x-auto prose-pre:max-w-full',
+        'prose-table:w-full prose-table:overflow-x-auto'
+      )}
+    >
+      <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }
