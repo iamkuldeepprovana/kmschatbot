@@ -343,112 +343,130 @@ export default function ChatPage() {
       {/* Main Content (with left margin for sidebar) */}
       <div className="flex flex-col flex-1 h-full ml-0 md:ml-72">
         {/* Header */}
-        <div className="flex-shrink-0 border-b backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 w-full">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold transition-colors duration-300 text-gray-900 dark:text-gray-100">Provana KMS</h1>
-                  <div className="flex items-center">
-                    <p className="text-sm transition-colors duration-300 text-gray-500 dark:text-gray-400">Your Knowledge Management Solution</p>
-                    {sessionId && (
-                      <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                        Session: {sessionId.substring(sessionId.length - 6)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Theme Toggle & Logout */}
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={toggleDarkMode}
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full transition-colors duration-300 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
-                  title={isDarkMode ? "Light Mode" : "Dark Mode"}
-                >
-                  {mounted && (isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
-                </Button>
-                {/* User Info Dropdown Modernized */}
-                <div className="relative group">
-                  <button className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" tabIndex={0}>
-                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800">
-                        <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
-                      </span>
-                    </span>
-                    <span className="hidden sm:block max-w-[120px] truncate font-medium text-gray-900 dark:text-gray-100 text-base">{username}</span>
-                    <svg className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto group-focus:pointer-events-auto transition-all z-[9999] border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
-                        <span className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-gray-800">
-                          <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
-                        </span>
-                      </span>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">{username}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">Provana User</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('chatbot-username');
-                        localStorage.removeItem('current-session-id');
-                        window.location.href = '/login';
-                      }}
-                      className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-xl transition-colors font-semibold flex items-center gap-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
-                      Logout
-                    </button>
-                  </div>
-                </div>
+        {/* Header Section */}
+<div className="flex-shrink-0 border-b backdrop-blur-sm transition-colors duration-300 bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 w-full relative z-50">
+  <div className="max-w-4xl mx-auto px-4 py-4">
+    <div className="flex items-center justify-between">
+      {/* Left: App Logo & Title */}
+      <div className="flex items-center space-x-3">
+        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <Bot className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold transition-colors duration-300 text-gray-900 dark:text-gray-100">
+            Provana KMS
+          </h1>
+          <div className="flex items-center">
+            <p className="text-sm transition-colors duration-300 text-gray-500 dark:text-gray-400">
+              Your Knowledge Management Solution
+            </p>
+            {sessionId && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                Session: {sessionId.substring(sessionId.length - 6)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Right: Theme Toggle & User Dropdown */}
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={toggleDarkMode}
+          variant="ghost"
+          size="icon"
+          className="rounded-full transition-colors duration-300 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+          title={isDarkMode ? "Light Mode" : "Dark Mode"}
+        >
+          {mounted && (isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
+        </Button>
+
+        {/* User Info Dropdown */}
+        <div className="relative group z-50">
+          <button className="flex items-center gap-2 px-2 py-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" tabIndex={0}>
+            <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800">
+                <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
+              </span>
+            </span>
+            <span className="hidden sm:block max-w-[120px] truncate font-medium text-gray-900 dark:text-gray-100 text-base">
+              {username}
+            </span>
+            <svg className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto transition-all z-[9999] border border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-0.5">
+                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-white dark:bg-gray-800">
+                  <User className="w-5 h-5 text-blue-500 dark:text-purple-400" />
+                </span>
+              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">{username}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">Provana User</span>
               </div>
             </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('chatbot-username');
+                localStorage.removeItem('current-session-id');
+                window.location.href = '/login';
+              }}
+              className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-xl transition-colors font-semibold flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
+              </svg>
+              Logout
+            </button>
           </div>
         </div>
-        {/* Messages Display */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70 w-full">
-          <div className="w-full max-w-4xl mx-auto space-y-4 overflow-hidden">
-            {isLoadingSession ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-pulse flex flex-col items-center">
-                  <div className="h-10 w-10 bg-blue-400/30 dark:bg-blue-600/30 rounded-full mb-2"></div>
-                  <div className="h-4 w-32 bg-blue-400/30 dark:bg-blue-600/30 rounded"></div>
-                </div>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  content={message.content}
-                  isUser={message.isUser}
-                  timestamp={message.timestamp}
-                  isHistory={message.isHistory || false}
-                />
-              ))
-            )}
-            
-            {isTyping && (
-              <div className="flex items-center space-x-2 animate-pulse">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-white" />
-                </div>
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 text-gray-500 dark:text-gray-400">
-                  Thinking...
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Chat Messages Section */}
+<div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70 w-full relative z-10">
+  <div className="w-full max-w-4xl mx-auto space-y-4 overflow-hidden">
+    {isLoadingSession ? (
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-10 w-10 bg-blue-400/30 dark:bg-blue-600/30 rounded-full mb-2"></div>
+          <div className="h-4 w-32 bg-blue-400/30 dark:bg-blue-600/30 rounded"></div>
         </div>
+      </div>
+    ) : (
+      messages.map((message) => (
+        <ChatMessage
+          key={message.id}
+          content={message.content}
+          isUser={message.isUser}
+          timestamp={message.timestamp}
+          isHistory={message.isHistory || false}
+        />
+      ))
+    )}
+
+    {isTyping && (
+      <div className="flex items-center space-x-2 animate-pulse">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center">
+          <Bot className="h-4 w-4 text-white" />
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 text-gray-500 dark:text-gray-400">
+          Thinking...
+        </div>
+      </div>
+    )}
+
+    <div ref={messagesEndRef} />
+  </div>
+</div>
+
         {/* Input Area */}
         <div className="flex-shrink-0 border-t backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 w-full">
           <div className="max-w-4xl mx-auto px-4 py-4">
