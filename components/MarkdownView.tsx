@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { marked } from 'marked';
-import { cn } from '@/lib/utils';
+import { cn, convertGcsUrlToHttps } from '@/lib/utils';
 
 interface MarkdownViewProps {
   content: string;
@@ -11,7 +11,11 @@ interface MarkdownViewProps {
 
 // Clean markdown links before parsing
 function cleanMarkdownLinks(markdown: string): string {
-  return markdown.replace(
+  // First, convert any gs:// links to https://storage.googleapis.com/
+  let processed = convertGcsUrlToHttps(markdown);
+  
+  // Then handle space encoding in URLs
+  return processed.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     (match, text, url) => {
       // If the URL contains spaces and is not already encoded
@@ -25,6 +29,12 @@ function cleanMarkdownLinks(markdown: string): string {
 
 export function MarkdownView({ content, className }: MarkdownViewProps) {
   console.log('Rendering MarkdownView:', { content, className });
+  
+  // Clean any gs:// URLs in the raw content (outside of markdown links)
+  const convertedContent = useMemo(() => {
+    return convertGcsUrlToHttps(content);
+  }, [content]);
+  
   // Configure marked options globally
   marked.setOptions({
     gfm: true, // GitHub Flavored Markdown - enables tables
@@ -39,16 +49,15 @@ export function MarkdownView({ content, className }: MarkdownViewProps) {
   const html = useMemo(() => {
     try {
       // Clean links before parsing
-      const cleanedContent = cleanMarkdownLinks(content);
+      const cleanedContent = cleanMarkdownLinks(convertedContent);
       // Convert markdown to HTML
       const rawHtml = marked.parse(cleanedContent);
       return rawHtml;
     } catch (error) {
       console.error('Error parsing markdown:', error);
-      return content;
+      return convertedContent;
     }
-  }, [content]);
-
+  }, [convertedContent]);
   return (
     <div 
       className={cn(
