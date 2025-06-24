@@ -48,7 +48,7 @@ export function ChatHistorySidebar({
       
       // Add a timeout to the fetch to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), 100000); // 10 seconds timeout
       
       const response = await fetch(`/api/chat/history?username=${encodeURIComponent(username)}`, {
         signal: controller.signal,
