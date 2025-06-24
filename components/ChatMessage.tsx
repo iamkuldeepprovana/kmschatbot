@@ -9,10 +9,11 @@ type MessageProps = {
   content: string;
   isUser?: boolean;
   timestamp?: Date;
+  isHistory?: boolean; // New prop to indicate if this is a history message
 };
 
-export function ChatMessage({ content, isUser = false, timestamp = new Date() }: MessageProps) {
-  console.log('Rendering ChatMessage:', { content, isUser, timestamp });
+export function ChatMessage({ content, isUser = false, timestamp = new Date(), isHistory = false }: MessageProps) {
+  // console.log('Rendering ChatMessage:', { content, isUser, timestamp });
   return (
     <div
       className={cn(
@@ -41,12 +42,21 @@ export function ChatMessage({ content, isUser = false, timestamp = new Date() }:
             )}
           />
         ) : (
-          <TypewriterText
-            content={content}
-            className={cn(
-              "prose prose-sm max-w-none break-words overflow-hidden"
-            )}
-          />
+          isHistory ? (
+            <MarkdownView
+              content={content}
+              className={cn(
+                "prose prose-sm max-w-none break-words overflow-hidden"
+              )}
+            />
+          ) : (
+            <TypewriterText
+              content={content}
+              className={cn(
+                "prose prose-sm max-w-none break-words overflow-hidden"
+              )}
+            />
+          )
         )}
         <div className={cn(
           "text-xs mt-1 opacity-70",

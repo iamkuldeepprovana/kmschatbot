@@ -24,7 +24,7 @@ function cleanMarkdownLinks(markdown: string): string {
 }
 
 export function MarkdownView({ content, className }: MarkdownViewProps) {
-  console.log('Rendering MarkdownView:', { content, className });
+  // console.log('Rendering MarkdownView:', { content, className });
   // Configure marked options globally
   marked.setOptions({
     gfm: true, // GitHub Flavored Markdown - enables tables

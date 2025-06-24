@@ -8,12 +8,15 @@ import { useTheme } from '@/lib/useTheme';
 import { ChatMessage } from '@/components/ChatMessage';
 import { MarkdownView } from '@/components/MarkdownView';
 import { useToast } from '@/hooks/use-toast';
+import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
   id: string;
   content: string;
   isUser: boolean;
   timestamp: Date;
+  isHistory?: boolean; // Added to support history flag
 }
 
 interface ApiResponse {
@@ -28,6 +31,8 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [sessionId, setSessionId] = useState<string>('');
   const [username, setUsername] = useState<string>("");
+  const [sidebarWidth, setSidebarWidth] = useState<number>(0);
+  const [isLoadingSession, setIsLoadingSession] = useState<boolean>(false);
   const { isDarkMode, toggleDarkMode, mounted } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -37,7 +42,6 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -49,18 +53,89 @@ export default function ChatPage() {
     }
     setUsername(storedUsername);
 
-    // Initialize session ID with current timestamp
-    const newSessionId = `session-${Date.now()}`;
+    // Always start a new session on page load
+    const newSessionId = `session-${uuidv4()}`;
     setSessionId(newSessionId);
+    localStorage.setItem('current-session-id', newSessionId);
 
     // Add welcome message
+    const welcomeMessage = `Welcome to Provana KMS! How can I help you today?`;
     setMessages([{
       id: `welcome-${newSessionId}`,
-      content: `Welcome to Provana KMS! How can I help you today?`,
+      content: welcomeMessage,
       isUser: false,
       timestamp: new Date()
     }]);
+    // Do NOT call saveMessage here anymore
   }, []);
+
+  // Save welcome message only after sessionId, username, and messages are set
+  useEffect(() => {
+    if (
+      sessionId &&
+      username &&
+      messages.length === 1 &&
+      messages[0].id.startsWith('welcome-') &&
+      messages[0].content === 'Welcome to Provana KMS! How can I help you today?'
+    ) {
+      saveMessage(messages[0].content, false, username);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, username, messages]);
+
+  // Save individual message to MongoDB
+  const saveMessage = async (content: string, isUser: boolean, overrideUsername?: string) => {
+    try {
+      const messageUsername = overrideUsername || username;
+      if (!sessionId || !content || !messageUsername) {
+        console.error('Missing required fields for saving message:', {
+          hasSessionId: !!sessionId,
+          hasContent: !!content,
+          hasUsername: !!messageUsername
+        });
+        return null;
+      }
+      console.log(`Saving individual ${isUser ? 'user' : 'AI'} message`);
+      
+      const response = await fetch('/api/chat/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          role: isUser ? 'user' : 'assistant',
+          content: content,
+          username: messageUsername // Always include username
+        })
+      });
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = await response.text();
+        }
+        console.error('Error saving message:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(
+          `Failed to save message: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`
+        );
+      }
+      
+      const result = await response.json();
+      console.log(`${isUser ? 'User' : 'AI'} message saved successfully:`, result);
+      return result;
+    } catch (error) {
+      console.error('Error saving individual message:', error);
+      // Don't show toast for every message save error to avoid overwhelming the user
+      return null;
+    }
+  };
 
   const sendMessageToBackend = async (question: string) => {
     setIsTyping(true);
@@ -74,15 +149,19 @@ export default function ChatPage() {
     };
     
     setMessages(prev => [...prev, userMessage]);
-      try {
+
+    // Save the user message immediately
+    await saveMessage(question, true);
+      
+    try {
       const username = localStorage.getItem('chatbot-username') || 'guest';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
-
-
+      
       console.log('Sending request to API:', {
         query: question,
-        client_name: username
+        client_name: username,
+        sessionId: sessionId // Include sessionId in logging
       });
 
       console.log('Connecting to:', 'https://kmaaivertexai-658439223400.us-central1.run.app/retrieve');
@@ -91,21 +170,22 @@ export default function ChatPage() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+          'Accept': 'application/json'        },
         mode: 'cors',
         credentials: 'omit',
-        signal: controller.signal,        body: JSON.stringify({
+        signal: controller.signal,
+        body: JSON.stringify({
           query: question,
           client_name: username
         })
       });
 
       clearTimeout(timeoutId);
-      
       if (!res.ok) {
         throw new Error(`API returned status: ${res.status}`);
-      }      console.log('Response status:', res.status);
+      }
+      
+      console.log('Response status:', res.status);
       const data: ApiResponse = await res.json();
       console.log('API Response:', data);
 
@@ -125,7 +205,19 @@ export default function ChatPage() {
         timestamp: new Date()
       };
       
+      // Log the AI response before adding it to the state
+      console.log('AI response to be saved:', {
+        content: data.generated_response.substring(0, 100) + '...',
+        isUser: false,
+        timestamp: new Date()
+      });
+      
       setMessages(prev => [...prev, botMessage]);
+      
+      // Save the AI response immediately 
+      await saveMessage(data.generated_response, false);
+      
+      // No need to call saveChatSession since we're saving messages individually
     } catch (e) {
       console.error('API Error:', e);
       // Add error message with more specific information
@@ -139,6 +231,9 @@ export default function ChatPage() {
       };
       
       setMessages(prev => [...prev, errorMessage]);
+      
+      // Save the error message to MongoDB as an AI response
+      await saveMessage(errorMessage.content, false);
     } finally {
       setIsTyping(false);
     }
@@ -156,20 +251,26 @@ export default function ChatPage() {
       handleSend();
     }
   };
-
   // Start a new chat session
   const startNewChat = () => {
-    // Generate a new session ID with current timestamp
-    const newSessionId = `session-${Date.now()}`;
+    // Generate a new session ID with UUID
+    const newSessionId = `session-${uuidv4()}`;
     setSessionId(newSessionId);
+    localStorage.setItem('current-session-id', newSessionId);
+    
+    // Prepare welcome message
+    const welcomeMessage = `Welcome to Provana KMS! How can I help you today?`;
     
     // Clear all messages except the welcome message
     setMessages([{
       id: `welcome-${newSessionId}`,
-      content: `Welcome to Provana KMS! How can I help you today?`,
+      content: welcomeMessage,
       isUser: false,
       timestamp: new Date()
     }]);
+    
+    // Save the welcome message to MongoDB, passing username from state
+    saveMessage(welcomeMessage, false, username);
     
     // Reset input field
     setInputValue('');
@@ -182,11 +283,59 @@ export default function ChatPage() {
     });
   };
 
+  // Load a chat session by ID
+  const loadChatSession = async (sessionId: string) => {
+    try {
+      setIsLoadingSession(true);
+      
+      const response = await fetch(`/api/chat/${sessionId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load chat session');
+      }
+      
+      const { chatSession } = await response.json();
+      
+      if (chatSession) {
+        // Update session ID and messages
+        setSessionId(chatSession.sessionId);
+        localStorage.setItem('current-session-id', chatSession.sessionId);
+        
+        // Transform messages to match our interface
+        const formattedMessages = chatSession.messages.map((msg: any) => ({
+          id: `msg-${msg._id || Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          content: msg.content,
+          isUser: msg.isUser,
+          timestamp: new Date(msg.timestamp),
+          isHistory: true // Mark as history
+        }));
+        
+        setMessages(formattedMessages);
+        
+        toast({
+          title: "Success",
+          description: "Chat history loaded",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading chat session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat session",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingSession(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden transition-colors duration-300 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <div className="flex-shrink-0 border-b backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-3xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -241,6 +390,7 @@ export default function ChatPage() {
                   <button
                     onClick={() => {
                       localStorage.removeItem('chatbot-username');
+                      localStorage.removeItem('current-session-id');
                       window.location.href = '/login';
                     }}
                     className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-xl transition-colors font-semibold flex items-center gap-2"
@@ -255,17 +405,35 @@ export default function ChatPage() {
         </div>
       </div>
 
+      {/* Chat History Sidebar */}
+      <ChatHistorySidebar
+        username={username}
+        currentSessionId={sessionId}
+        onSessionSelect={loadChatSession}
+        onNewChat={startNewChat}
+      />
+
       {/* Messages Display */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70">
+      <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70 ml-0 md:ml-64">
         <div className="w-full max-w-3-5xl mx-auto space-y-4 overflow-hidden">
-          {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              content={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
+          {isLoadingSession ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="h-10 w-10 bg-blue-400/30 dark:bg-blue-600/30 rounded-full mb-2"></div>
+                <div className="h-4 w-32 bg-blue-400/30 dark:bg-blue-600/30 rounded"></div>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                content={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+                isHistory={message.isHistory || false}
+              />
+            ))
+          )}
           
           {isTyping && (
             <div className="flex items-center space-x-2 animate-pulse">
@@ -280,11 +448,9 @@ export default function ChatPage() {
           
           <div ref={messagesEndRef} />
         </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="flex-shrink-0 border-t backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      </div>      {/* Input Area */}
+      <div className="flex-shrink-0 border-t backdrop-blur-sm transition-colors duration-300 bg-white/80 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 ml-0 md:ml-64">
+        <div className="max-w-3xl mx-auto px-4 py-4">
           <div className="flex items-end space-x-3">
             <Button
               onClick={startNewChat}
@@ -308,13 +474,13 @@ export default function ChatPage() {
                 placeholder="Type your message..."
                 rows={1}
                 className="pr-12 min-h-[48px] max-h-40 resize-y rounded-xl transition-colors duration-300 border-gray-200 bg-white text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500 w-full py-3 px-4"
-                disabled={isTyping}
+                disabled={isTyping || isLoadingSession}
                 style={{ lineHeight: '1.5', overflow: 'auto' }}
               />
             </div>
             <Button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isTyping}
+              disabled={!inputValue.trim() || isTyping || isLoadingSession}
               className="h-12 w-12 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               size="icon"
             >
