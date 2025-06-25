@@ -28,7 +28,9 @@ export function ChatMessage({ content, isUser = false, timestamp = new Date(), i
       )}
         <div
         className={cn(
-          "relative rounded-xl px-4 py-3 shadow-sm max-w-[85%] min-w-[50px]",
+          "relative rounded-xl px-4 py-3 shadow-sm min-w-[50px]",
+          // Allow tables to expand beyond normal max-width
+          content.includes('<table') || content.includes('|') ? "max-w-[95%]" : "max-w-[85%]",
           isUser
             ? "bg-blue-500 text-white"
             : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -37,7 +39,7 @@ export function ChatMessage({ content, isUser = false, timestamp = new Date(), i
           <MarkdownView 
             content={content}
             className={cn(
-              "prose prose-sm max-w-none break-words overflow-hidden",
+              "prose prose-sm max-w-none break-words",
               "prose-invert"
             )}
           />
@@ -46,14 +48,14 @@ export function ChatMessage({ content, isUser = false, timestamp = new Date(), i
             <MarkdownView
               content={content}
               className={cn(
-                "prose prose-sm max-w-none break-words overflow-hidden"
+                "prose prose-sm max-w-none break-words"
               )}
             />
           ) : (
             <TypewriterText
               content={content}
               className={cn(
-                "prose prose-sm max-w-none break-words overflow-hidden"
+                "prose prose-sm max-w-none break-words"
               )}
             />
           )

@@ -49,7 +49,7 @@ export function TypewriterText({ content, onComplete, className, speed = 10 }: T
     return Promise.resolve(marked(cleanedContent)).then(html => 
       // Ensure tables are wrapped in a scrollable container
       (typeof html === 'string' ? html : String(html))
-        .replace(/<table/g, '<div class="overflow-x-auto w-full"><table')
+        .replace(/<table/g, '<div class="table-wrapper overflow-x-auto w-full"><table')
         .replace(/<\/table>/g, '</table></div>')
     );
   }, [displayedContent]);
@@ -65,7 +65,7 @@ export function TypewriterText({ content, onComplete, className, speed = 10 }: T
     <div 
       className={cn(
         className,
-        'markdown-content overflow-hidden max-w-full',
+        'markdown-content max-w-full',
         'prose-pre:overflow-x-auto prose-pre:max-w-full',
         'prose-table:w-full prose-table:overflow-x-auto'
       )}

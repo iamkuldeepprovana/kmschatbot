@@ -99,10 +99,17 @@ export async function addMessageToSession(sessionId: string, content: string, ro
       // Update existing session
       session.messages.push(message);
       session.updatedAt = new Date();
+      
+      // If this is the first user message and the current title is generic, update it
+      if (isUser && (session.title === 'New Chat' || session.title.startsWith('Welcome to Provana KMS'))) {
+        session.title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+      }
+      
       await session.save();
       return { success: true, sessionId, isNewSession: false };
     } else {
       // Create new session with this message as the first message
+      // For AI messages (like welcome message), use a generic title that will be updated later
       const title = isUser ? 
         (content.substring(0, 50) + (content.length > 50 ? '...' : '')) : 
         'New Chat';

@@ -518,7 +518,7 @@ export default function ChatPage() {
 
         {/* Chat Messages Section */}
         <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-blue-500/70 dark:scrollbar-thumb-blue-900/70 w-full relative z-10">
-          <div className="w-full max-w-3-5xl mx-auto space-y-4 overflow-hidden">
+          <div className="w-full max-w-3-5xl mx-auto space-y-4">
             {isLoadingSession ? (
               <div className="flex items-center justify-center h-32">
                 <div className="animate-pulse flex flex-col items-center">

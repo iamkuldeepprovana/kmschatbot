@@ -42,7 +42,11 @@ export function MarkdownView({ content, className }: MarkdownViewProps) {
       const cleanedContent = cleanMarkdownLinks(content);
       // Convert markdown to HTML
       const rawHtml = marked.parse(cleanedContent);
-      return rawHtml;
+      // Ensure tables are wrapped in a scrollable container
+      const processedHtml = (typeof rawHtml === 'string' ? rawHtml : String(rawHtml))
+        .replace(/<table/g, '<div class="table-wrapper overflow-x-auto w-full"><table')
+        .replace(/<\/table>/g, '</table></div>');
+      return processedHtml;
     } catch (error) {
       console.error('Error parsing markdown:', error);
       return content;
@@ -53,7 +57,7 @@ export function MarkdownView({ content, className }: MarkdownViewProps) {
     <div 
       className={cn(
         className,
-        'markdown-content overflow-hidden max-w-full'
+        'markdown-content max-w-full'
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
