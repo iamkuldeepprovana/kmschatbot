@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Clock, MessageSquare, ChevronLeft, ChevronRight, Loader2, Menu } from 'lucide-react';
+import { Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -19,15 +19,18 @@ interface ChatHistorySidebarProps {
   currentSessionId: string;
   onSessionSelect: (sessionId: string) => void;
   onNewChat: () => void;
+  isOpen: boolean;
+  onToggleSidebar: () => void; // <-- add this prop
 }
 
 export function ChatHistorySidebar({ 
   username, 
   currentSessionId, 
   onSessionSelect, 
-  onNewChat 
+  onNewChat, 
+  isOpen,
+  onToggleSidebar // <-- add this prop
 }: ChatHistorySidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -48,7 +51,7 @@ export function ChatHistorySidebar({
       
       // Add a timeout to the fetch to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 100000); // 10 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
       
       const response = await fetch(`/api/chat/history?username=${encodeURIComponent(username)}`, {
         signal: controller.signal,
@@ -125,18 +128,31 @@ export function ChatHistorySidebar({
   };
 
   return (
-    <aside className={`fixed top-0 left-0 h-screen z-30 transition-all duration-300 ease-in-out flex flex-col ${isOpen ? 'w-72' : 'w-4'} group`}>
-      <div className={`relative h-full flex flex-col border-r border-gray-200 dark:border-gray-800 shadow-xl backdrop-blur-lg transition-all duration-300 ${isOpen ? 'bg-white/80 dark:bg-gray-900/80' : 'bg-transparent hover:bg-white/40 dark:hover:bg-gray-900/40'} ${isOpen ? '' : 'hover:shadow-lg'}`}>
-        {/* Header always present */}
-        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between h-20 min-h-[5rem]">
-          <span className={`font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none select-none'}`}>Chats</span>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="ml-2 bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700 rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-            aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            <Menu size={20} />
-          </button>
+    <aside
+      className={`h-full transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'w-72' : 'w-0'} border-r border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-xl backdrop-blur-lg`}
+      style={{ minWidth: 0 }}
+    >
+      {/* Header always present, but hide content visually when closed */}
+      <div className={`relative h-full flex flex-col ${isOpen ? '' : 'pointer-events-none select-none'}`}>
+        <div className={`p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between h-20 min-h-[5rem] ${isOpen ? '' : 'opacity-0'}`}>
+          <div className="flex items-center justify-between w-full">
+            
+            <span className={`font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight transition-opacity`}>Chats</span>
+            {/* Hamburger only when sidebar is open */}
+            {isOpen && (
+              <Button
+                onClick={onToggleSidebar}
+                variant="ghost"
+                size="icon"
+                className="mr-2 rounded-full transition-colors duration-300 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+                title="Hide sidebar"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Button>
+            )}
+          </div>
         </div>
         {isOpen && (
           <>

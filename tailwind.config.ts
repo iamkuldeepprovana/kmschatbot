@@ -85,7 +85,7 @@ const config: Config = {
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
       maxWidth: {
-        '3-5xl': '44rem', // 896px
+        '3-5xl': '52rem', // 896px
       },
     },
   },
