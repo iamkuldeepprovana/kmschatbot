@@ -73,21 +73,6 @@ export default function ChatPage() {
     // Do NOT call saveMessage here anymore
   }, []);
 
-  // Save welcome message only after sessionId, username, and messages are set
-  useEffect(() => {
-    if (
-      sessionId &&
-      username &&
-      messages.length === 1 &&
-      messages[0].id.startsWith("welcome-") &&
-      messages[0].content ===
-        "Welcome to Provana KMS! How can I help you today?"
-    ) {
-      saveMessage(messages[0].content, false, username);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, username, messages]);
-
   // Save individual message to MongoDB
   const saveMessage = async (
     content: string,
@@ -95,6 +80,12 @@ export default function ChatPage() {
     overrideUsername?: string
   ) => {
     try {
+      // Skip saving hardcoded welcome messages
+      if (!isUser && content.startsWith("Welcome to Provana KMS")) {
+        console.log("Skipping welcome message - not saving to database");
+        return { success: true, skipped: true };
+      }
+
       const messageUsername = overrideUsername || username;
       if (!sessionId || !content || !messageUsername) {
         console.error("Missing required fields for saving message:", {
@@ -294,8 +285,7 @@ export default function ChatPage() {
       },
     ]);
 
-    // Save the welcome message to MongoDB, passing username from state
-    saveMessage(welcomeMessage, false, username);
+    // Note: Welcome message is not saved to database as it's a hardcoded greeting
 
     // Reset input field
     setInputValue("");

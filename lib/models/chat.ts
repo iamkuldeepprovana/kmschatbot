@@ -84,6 +84,17 @@ export async function getChatSessionById(sessionId: string) {
 // Helper to add a message to a session
 export async function addMessageToSession(sessionId: string, content: string, role: 'user' | 'assistant', username: string) {
   try {
+    // Skip saving hardcoded welcome messages to prevent unnecessary DB operations
+    const WELCOME_MESSAGE = 'Welcome to Provana KMS! How can I help you today?';
+    const isWelcomeMessage =
+      !role ||
+      (role === 'assistant' &&
+        (content === WELCOME_MESSAGE || content.startsWith('Welcome to Provana KMS')));
+    if (isWelcomeMessage) {
+      console.log('Skipping welcome message - not saving to database');
+      return { success: true, sessionId, isNewSession: false, skipped: true };
+    }
+
     const isUser = role === 'user';
     const message = {
       content,
@@ -109,7 +120,7 @@ export async function addMessageToSession(sessionId: string, content: string, ro
       return { success: true, sessionId, isNewSession: false };
     } else {
       // Create new session with this message as the first message
-      // For AI messages (like welcome message), use a generic title that will be updated later
+      // Only create session when we have a real user message or AI response (not welcome message)
       const title = isUser ? 
         (content.substring(0, 50) + (content.length > 50 ? '...' : '')) : 
         'New Chat';
