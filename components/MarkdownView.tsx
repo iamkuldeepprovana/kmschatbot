@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { marked } from 'marked';
-import { cn } from '@/lib/utils';
+import { cn, convertGcsUrlToHttps } from '@/lib/utils';
 
 interface MarkdownViewProps {
   content: string;

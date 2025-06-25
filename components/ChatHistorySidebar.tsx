@@ -129,7 +129,12 @@ export function ChatHistorySidebar({
 
   return (
     <aside
-      className={`h-full transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'w-72' : 'w-0'} border-r border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-xl backdrop-blur-lg`}
+      className={`h-full transition-all duration-300 ease-in-out flex flex-col overflow-hidden 
+        ${isOpen ? 'w-72 sm:w-72 md:w-64 lg:w-72 xl:w-80' : 'w-0'} 
+        border-r border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-xl backdrop-blur-lg
+        fixed sm:static top-0 left-0 z-40
+        max-w-full
+      `}
       style={{ minWidth: 0 }}
     >
       {/* Header always present, but hide content visually when closed */}

@@ -8,6 +8,7 @@ import { useTheme } from "@/lib/useTheme";
 import { ChatMessage } from "@/components/ChatMessage";
 import { MarkdownView } from "@/components/MarkdownView";
 import { useToast } from "@/hooks/use-toast";
+import { convertGcsUrlToHttps } from "@/lib/utils";
 import { ChatHistorySidebar } from "@/components/ChatHistorySidebar";
 import { v4 as uuidv4 } from "uuid";
 
@@ -218,16 +219,17 @@ export default function ChatPage() {
       }
 
       // Add bot response to state
+      const processedResponse = convertGcsUrlToHttps(data.generated_response);
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
-        content: data.generated_response,
+        content: processedResponse,
         isUser: false,
         timestamp: new Date(),
       };
 
       // Log the AI response before adding it to the state
       console.log("AI response to be saved:", {
-        content: data.generated_response.substring(0, 100) + "...",
+        content: processedResponse.substring(0, 100) + "...",
         isUser: false,
         timestamp: new Date(),
       });
@@ -235,7 +237,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, botMessage]);
 
       // Save the AI response immediately
-      await saveMessage(data.generated_response, false);
+      await saveMessage(processedResponse, false);
 
       // No need to call saveChatSession since we're saving messages individually
     } catch (e) {
@@ -369,15 +371,15 @@ export default function ChatPage() {
       />
       {/* Main Content */}
       <div className="flex flex-col flex-1 w-full h-full relative">
-        {/* Hamburger absolutely positioned in top-left when sidebar is closed */}
+        {/* Hamburger absolutely positioned in top-left when sidebar is closed (mobile/desktop) */}
         {!isSidebarOpen && (
           <Button
             onClick={() => setIsSidebarOpen(true)}
             variant="ghost"
             size="icon"
-            className="fixed top-4 left-4 z-[100] rounded-full transition-colors duration-300 bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100 shadow"
+            className="fixed top-4 left-4 z-[100] rounded-full transition-colors duration-300 bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 text-gray-600 hover:text-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-gray-100 shadow md:top-6 md:left-6"
             title="Show sidebar"
-            style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)' }}
+            style={{ boxShadow: "0 2px 8px 0 rgba(0,0,0,0.08)" }}
           >
             <svg
               className="w-6 h-6"
@@ -396,24 +398,23 @@ export default function ChatPage() {
         )}
         {/* Header Section */}
         <div className="flex-shrink-0 border-b backdrop-blur-sm transition-colors duration-300 bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 w-full relative z-50">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
               {/* Left: App Logo & Title */}
-              <div className="flex items-center space-x-3">
-                {/* Hamburger for sidebar toggle (only when sidebar is closed) - removed from here */}
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold transition-colors duration-300 text-gray-900 dark:text-gray-100">
+                  <h1 className="text-base sm:text-lg font-semibold transition-colors duration-300 text-gray-900 dark:text-gray-100">
                     Provana KMS
                   </h1>
                   <div className="flex items-center">
-                    <p className="text-sm transition-colors duration-300 text-gray-500 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm transition-colors duration-300 text-gray-500 dark:text-gray-400">
                       Your Knowledge Management Solution
                     </p>
                     {sessionId && (
-                      <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                      <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">
                         Session: {sessionId.substring(sessionId.length - 6)}
                       </span>
                     )}
