@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import { getChatSessionsByUsername } from '@/lib/models/chat';
-import { getConnectionStateString } from '@/lib/mongodb';
 
 // GET /api/chat/history
 export async function GET(request: Request) {
@@ -12,12 +11,7 @@ export async function GET(request: Request) {
     let mongoose;
     try {
       mongoose = await connectToDatabase();
-      const connectionState = mongoose.connection.readyState;
-      console.log("MongoDB connection state:", getConnectionStateString(connectionState));
       
-      if (connectionState !== 1) {
-        throw new Error(`MongoDB not connected. Current state: ${getConnectionStateString(connectionState)}`);
-      }
     } catch (dbError) {
       console.error("MongoDB connection error in history endpoint:", dbError);
       return NextResponse.json(
@@ -64,8 +58,6 @@ export async function GET(request: Request) {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.stack : undefined,
       type: error instanceof Error ? error.constructor.name : typeof error,
-      connectionState: mongoose && 'connection' in mongoose ? 
-        getConnectionStateString((mongoose as any).connection.readyState) : 'unknown'
     };
     
     console.error('Chat History API Error:', errorDetails);

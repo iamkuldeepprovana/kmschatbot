@@ -73,71 +73,69 @@ export default function ChatPage() {
     // Do NOT call saveMessage here anymore
   }, []);
 
-  // Save individual message to MongoDB
-  const saveMessage = async (
-    content: string,
-    isUser: boolean,
+  // Save query and response pair to MongoDB
+  const saveQueryResponsePair = async (
+    query: string,
+    response: string,
     overrideUsername?: string
   ) => {
     try {
-      // Skip saving hardcoded welcome messages
-      if (!isUser && content.startsWith("Welcome to Provana KMS")) {
+      // Skip saving if this is a welcome message response
+      if (response.startsWith("Welcome to Provana KMS")) {
         console.log("Skipping welcome message - not saving to database");
         return { success: true, skipped: true };
       }
 
       const messageUsername = overrideUsername || username;
-      if (!sessionId || !content || !messageUsername) {
-        console.error("Missing required fields for saving message:", {
+      if (!sessionId || !query || !response || !messageUsername) {
+        console.error("Missing required fields for saving query/response pair:", {
           hasSessionId: !!sessionId,
-          hasContent: !!content,
+          hasQuery: !!query,
+          hasResponse: !!response,
           hasUsername: !!messageUsername,
         });
         return null;
       }
-      console.log(`Saving individual ${isUser ? "user" : "AI"} message`);
+      
+      console.log("Saving query/response pair to session");
 
-      const response = await fetch("/api/chat/message", {
+      const apiResponse = await fetch("/api/chat/message", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           sessionId,
-          role: isUser ? "user" : "assistant",
-          content: content,
-          username: messageUsername, // Always include username
+          user: messageUsername,
+          query: query,
+          response: response,
         }),
       });
 
-      if (!response.ok) {
+      if (!apiResponse.ok) {
         let errorData;
         try {
-          errorData = await response.json();
+          errorData = await apiResponse.json();
         } catch {
-          errorData = await response.text();
+          errorData = await apiResponse.text();
         }
-        console.error("Error saving message:", {
-          status: response.status,
-          statusText: response.statusText,
+        console.error("Error saving query/response pair:", {
+          status: apiResponse.status,
+          statusText: apiResponse.statusText,
           errorData,
         });
         throw new Error(
-          `Failed to save message: ${response.status} ${
-            response.statusText
+          `Failed to save query/response pair: ${apiResponse.status} ${
+            apiResponse.statusText
           } - ${JSON.stringify(errorData)}`
         );
       }
 
-      const result = await response.json();
-      console.log(
-        `${isUser ? "User" : "AI"} message saved successfully:`,
-        result
-      );
+      const result = await apiResponse.json();
+      console.log("Query/response pair saved successfully:", result);
       return result;
     } catch (error) {
-      console.error("Error saving individual message:", error);
-      // Don't show toast for every message save error to avoid overwhelming the user
+      console.error("Error saving query/response pair:", error);
       return null;
     }
   };
@@ -154,9 +152,6 @@ export default function ChatPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-
-    // Save the user message immediately
-    await saveMessage(question, true);
 
     try {
       const username = localStorage.getItem("chatbot-username") || "guest";
@@ -218,19 +213,11 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
 
-      // Log the AI response before adding it to the state
-      console.log("AI response to be saved:", {
-        content: processedResponse.substring(0, 100) + "...",
-        isUser: false,
-        timestamp: new Date(),
-      });
-
       setMessages((prev) => [...prev, botMessage]);
 
-      // Save the AI response immediately
-      await saveMessage(processedResponse, false);
+      // Save the query and response pair together
+      await saveQueryResponsePair(question, processedResponse);
 
-      // No need to call saveChatSession since we're saving messages individually
     } catch (e) {
       console.error("API Error:", e);
       // Add error message with more specific information
@@ -246,8 +233,8 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, errorMessage]);
 
-      // Save the error message to MongoDB as an AI response
-      await saveMessage(errorMessage.content, false);
+      // Save the error message pair
+      await saveQueryResponsePair(question, errorMessage.content);
     } finally {
       setIsTyping(false);
     }
@@ -312,20 +299,32 @@ export default function ChatPage() {
       const { chatSession } = await response.json();
 
       if (chatSession) {
-        // Update session ID and messages
+        // Update session ID
         setSessionId(chatSession.sessionId);
         localStorage.setItem("current-session-id", chatSession.sessionId);
 
-        // Transform messages to match our interface
-        const formattedMessages = chatSession.messages.map((msg: any) => ({
-          id: `msg-${msg._id || Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 9)}`,
-          content: msg.content,
-          isUser: msg.isUser,
-          timestamp: new Date(msg.timestamp),
-          isHistory: true, // Mark as history
-        }));
+        // Transform message pairs to individual messages for display
+        const formattedMessages: Message[] = [];
+        
+        chatSession.messages.forEach((pair: { query: string; response: string }, index: number) => {
+          // Add user message
+          formattedMessages.push({
+            id: `user-${index}-${Date.now()}`,
+            content: pair.query,
+            isUser: true,
+            timestamp: new Date(chatSession.createdAt),
+            isHistory: true,
+          });
+          
+          // Add AI response
+          formattedMessages.push({
+            id: `bot-${index}-${Date.now()}`,
+            content: pair.response,
+            isUser: false,
+            timestamp: new Date(chatSession.createdAt),
+            isHistory: true,
+          });
+        });
 
         setMessages(formattedMessages);
 

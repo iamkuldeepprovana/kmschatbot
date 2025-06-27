@@ -1,30 +1,12 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
-import { addMessageToSession } from '@/lib/models/chat';
-import { getConnectionStateString } from '@/lib/mongodb';
+import { addQueryResponsePairToSession } from '@/lib/models/chat';
 
 // POST /api/chat/message
 export async function POST(request: Request) {
   try {
     console.log("Starting MongoDB connection in /api/chat/message");
-    
-    // Try to connect to MongoDB
-    const mongoose = await connectToDatabase();
-    const connectionState = mongoose.connection.readyState;
-    
-    console.log("MongoDB connection state:", getConnectionStateString(connectionState));
-    
-    // Verify the connection is established
-    if (connectionState !== 1) {
-      console.error("MongoDB not connected. Current state:", getConnectionStateString(connectionState));
-      return NextResponse.json(
-        { 
-          error: 'Database connection not established', 
-          connectionState: getConnectionStateString(connectionState)
-        },
-        { status: 500 }
-      );
-    }
+    await connectToDatabase();
     
     // Parse request body
     let body;
@@ -38,54 +20,48 @@ export async function POST(request: Request) {
       );
     }
     
-    const { sessionId, role, content, username = 'guest' } = body;
+    const { sessionId, user, query, response } = body;
     
     console.log("Received message save request:", { 
       sessionId, 
-      role,
-      contentPreview: content?.substring(0, 30) + (content?.length > 30 ? '...' : '')
+      user,
+      queryPreview: query?.substring(0, 30) + (query?.length > 30 ? '...' : ''),
+      responsePreview: response?.substring(0, 30) + (response?.length > 30 ? '...' : '')
     });
     
     // Validate required fields
-    if (!sessionId || !role || !content) {
+    if (!sessionId || !user || !query || !response) {
       console.error("Missing required fields:", { 
         hasSessionId: !!sessionId, 
-        hasRole: !!role, 
-        hasContent: !!content
+        hasUser: !!user, 
+        hasQuery: !!query,
+        hasResponse: !!response
       });
       return NextResponse.json(
-        { error: 'Missing required fields: sessionId, role, and content are required' },
-        { status: 400 }
-      );
-    }
-    
-    if (role !== 'user' && role !== 'assistant') {
-      return NextResponse.json(
-        { error: 'Role must be either "user" or "assistant"' },
+        { error: 'Missing required fields: sessionId, user, query, and response are required' },
         { status: 400 }
       );
     }
     
     try {
-      // Use the helper method to add the message to the session
-      const result = await addMessageToSession(
+      // Use the helper method to add the query/response pair to the session
+      const result = await addQueryResponsePairToSession(
         sessionId, 
-        content, 
-        role as 'user' | 'assistant', 
-        username
+        user, 
+        query, 
+        response
       );
       
       if (!result.success) {
-        throw new Error('Failed to add message to session');
+        throw new Error('Failed to add query/response pair to session');
       }
       
-      console.log(`${result.isNewSession ? 'Created new' : 'Updated'} chat session: ${sessionId} with new message`);
+      console.log(`${result.isNewSession ? 'Created new' : 'Updated'} chat session: ${sessionId} with new query/response pair`);
       
       return NextResponse.json({ 
         success: true, 
         sessionId: sessionId,
         messageAdded: true,
-        isUser: role === 'user',
         isNewSession: result.isNewSession
       });
     } catch (dbError) {
