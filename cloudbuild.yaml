@@ -50,7 +50,8 @@ steps:
           --cpu 1 \
           --min-instances 1 \
           --max-instances 10 \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --set-env-vars=MONGODB_URI=mongodb+srv://admin:admin@cluster0.9jco5cr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 
 options:
   logging: CLOUD_LOGGING_ONLY
