@@ -9,10 +9,24 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb+srv://admin:admin@cluster0.9jco5cr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - MONGODB_URI=${MONGODB_URI}
+      - NEXT_TELEMETRY_DISABLED=1
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - kmschatbot-network
+
+networks:
+  kmschatbot-network:
+    driver: bridge
